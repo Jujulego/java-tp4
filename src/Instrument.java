@@ -21,7 +21,7 @@ public class Instrument {
         for (Fonds fonds : fonds) {
             somme += fonds.getAmount();
 
-            if (fonds.getCle() == cle) {
+            if (fonds.getCle().equals(cle)) {
                 amount += fonds.getAmount();
             }
         }
