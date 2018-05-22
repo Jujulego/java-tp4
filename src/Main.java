@@ -1,8 +1,23 @@
+import java.io.*;
+
 public class Main {
     public static void main(String[] args) {
-        // Instantiations
-        Portefeuille portefeuille = new Portefeuille();
+        Portefeuille portefeuille;
+
+        File fichier = new File("portefeuille.obj");
         Console console = new Console();
+
+        // Ouverture !
+        if (fichier.exists()) {
+            try {
+                portefeuille = Portefeuille.charger(fichier);
+
+            } catch (IOException | ClassNotFoundException err) {
+                portefeuille = new Portefeuille();
+            }
+        } else {
+            portefeuille = new Portefeuille();
+        }
 
         // Ajouts d'instrument
         try {
@@ -19,11 +34,24 @@ public class Main {
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("T"));
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("A"));
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("M"));
+
         } catch (FondsExistant | FondsInexistant err) {
+            System.out.println("Existe déjà !");
         }
 
         console.afficherFonds(portefeuille);
         console.afficherInstruments(portefeuille);
         console.afficherPourcentagFonds("A", portefeuille);
+
+        // Enregistrement
+        fichier.delete();
+
+        try {
+            fichier.createNewFile();
+            portefeuille.sauvegarder(fichier);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

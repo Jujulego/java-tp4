@@ -1,4 +1,6 @@
-public class Fonds implements Comparable<Fonds> {
+import java.io.Serializable;
+
+public class Fonds implements Comparable<Fonds>, Serializable {
     // Attributs
     private String cle;
     private double amount;

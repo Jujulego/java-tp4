@@ -1,7 +1,8 @@
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Portefeuille {
+public class Portefeuille implements Serializable {
     // Attributs
     private HashMap<String,Fonds> fonds = new HashMap<>();
     private HashMap<String,Instrument> instruments = new HashMap<>();
@@ -62,6 +63,21 @@ public class Portefeuille {
         if (instruments.remove(nom) == null) {
             throw new InstrumentInexistant();
         }
+    }
+
+    // - sérialization
+    public static Portefeuille charger(File fichier) throws IOException, ClassNotFoundException {
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fichier));
+        Portefeuille portefeuille = (Portefeuille) ois.readObject();
+        ois.close();
+
+        return portefeuille;
+    }
+
+    public void sauvegarder(File fichier) throws IOException {
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fichier));
+        oos.writeObject(this);
+        oos.close();
     }
 
     // - accesseurs

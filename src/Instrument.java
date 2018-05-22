@@ -1,7 +1,8 @@
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class Instrument {
+public class Instrument implements Serializable {
     // Attributs
     private ArrayList<Fonds> fonds = new ArrayList<>();
 
