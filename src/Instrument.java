@@ -4,10 +4,12 @@ import java.util.Collections;
 
 public class Instrument implements Serializable {
     // Attributs
+    private String cle;
     private ArrayList<Fonds> fonds = new ArrayList<>();
 
     // Constructeur
-    public Instrument() {
+    public Instrument(String cle) {
+        this.cle = cle;
     }
 
     // Méthodes

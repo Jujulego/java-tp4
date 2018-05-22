@@ -52,7 +52,7 @@ public class Portefeuille implements Serializable {
         Instrument i = instruments.get(nom);
 
         if (i == null) {
-            i = new Instrument();
+            i = new Instrument(nom);
             instruments.put(nom, i);
         }
 
