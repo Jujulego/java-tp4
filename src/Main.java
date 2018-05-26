@@ -2,7 +2,7 @@ import java.io.*;
 
 public class Main {
     public static void main(String[] args) {
-        Portefeuille portefeuille;
+        /*Portefeuille portefeuille;
 
         File fichier = new File("portefeuille.obj");
         Console console = new Console();
@@ -52,6 +52,9 @@ public class Main {
 
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
+
+        Fenetre fenetre = new Fenetre();
+        fenetre.setVisible(true);
     }
 }

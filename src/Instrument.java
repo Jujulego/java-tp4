@@ -41,6 +41,10 @@ public class Instrument implements Serializable {
     }
 
     // - accesseurs
+    public String getCle() {
+        return cle;
+    }
+
     public ArrayList<Fonds> getFonds() {
         return fonds;
     }

@@ -22,14 +22,28 @@ public class Portefeuille implements Serializable {
         return f;
     }
 
-    public void ajouterFonds(String nom, double amount) throws FondsExistant {
+    /**
+     * Créee un nouveau fond et l'ajoute au portefeuille
+     *
+     * @param nom nom du fond
+     * @param amount valeur du fond
+     * @return Le fond nouvellement créé
+     *
+     * @throws FondsExistant En cas de fond préexistant
+     */
+    public Fonds ajouterFonds(String nom, double amount) throws FondsExistant {
+        Fonds f = null;
+
         try {
             rechercheFonds(nom);
             throw new FondsExistant();
 
         } catch (FondsInexistant err) {
-            fonds.put(nom, new Fonds(nom, amount));
+            f = new Fonds(nom, amount);
+            fonds.put(nom, f);
         }
+
+        return f;
     }
 
     public void supprimerFonds(String nom) throws FondsInexistant {
