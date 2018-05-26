@@ -29,6 +29,11 @@ public class Instrument {
         return (amount / somme) * 100;
     }
 
+    //supprimer le fond de l'instrument
+    public void supprimerFonds(Fonds a){
+        this.fonds.remove(a);
+    }
+
     public void trierFonds() {
         Collections.sort(fonds);
     }
