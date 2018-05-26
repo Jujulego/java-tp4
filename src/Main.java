@@ -11,6 +11,8 @@ public class Main {
 
         // Ajouts d'instrument
         try {
+
+
             portefeuille.ajouterFonds("A", 50);
             portefeuille.ajouterFonds("M", 150);
             portefeuille.ajouterFonds("T", 2);
@@ -24,6 +26,7 @@ public class Main {
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("T"));
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("A"));
             portefeuille.ajouterFondInstrument("Pool", portefeuille.rechercheFonds("M"));
+
         } catch (FondsExistant | FondsInexistant err) {
         }
 
@@ -35,7 +38,12 @@ public class Main {
         String nom1;
         String nom2;
 
+        System.out.println("On affiche les données pré-remplis pour pouvoir tester le code");
+        console.afficherFonds(portefeuille);
+        console.afficherInstruments(portefeuille);
+
         do {
+
         //menu interaction  avec utilisateur
         do {
             System.out.println("Choisissez l'action voulue :");
@@ -291,7 +299,7 @@ public class Main {
                     break;
 
                 case 5: //supprimer un fond
-                /*    test1 = false;
+                  test1 = false;
                     //on vide le buffer
                     scan.nextLine();
 
@@ -301,41 +309,29 @@ public class Main {
 
                         nom1 = scan.nextLine();
 
-                        //test pour voir si un Instrument contient le fond, et si oui le supprimer
-                        portefeuille.getInstruments().forEach((String nom, Instrument instr) -> {
-
-                            ArrayList<Fonds> fond = instr.getFonds();
-
-                            for(int i = 0; i < fond.size(); i++)
-                            {
-
-                                if(fond.get(i).getCle() == nom1)
-                                {
-                                    instr.supprimerFonds(fond.get(i));
-                                }
-                            }
-
-                        });
 
                         //test pour voir si le fond existe
-                       // HashMap<String, Fonds> fond = portefeuille.getFonds();
+                        HashMap<String, Fonds> fond = portefeuille.getFonds();
 
-                        try {
 
-                        }
+                        try{
 
                             try {
-
 
                                 if (fond.get(nom1) != null) {
 
 
                                     portefeuille.supprimerFonds(nom1);
 
-                                    test1 = true;
+
                                 }
 
+                                //on supprime le fond des Instruments
+                                portefeuille.getFonds().remove(nom1);
 
+
+
+                                test1 = true;
                             } catch (FondsInexistant FondsInexistant) {
                                 System.out.println("Ce fond n'existe pas");
                             }
@@ -345,7 +341,7 @@ public class Main {
 
                     }while(test1 == false);
 
-*/
+
                 break;
 
                 case 6: //Supprimer un Instrument
@@ -383,22 +379,60 @@ public class Main {
 
                     }while(test1 == false);
                 break;
+
+                case 7: //afficher tous les Instruments
+
+                    console.afficherInstruments(portefeuille);
+
+                break;
+
+                case 8: // afficher tous les fonds
+
+                    console.afficherFonds(portefeuille);
+
+                break;
+                case 9: //afficher stat sur les fonds
+                    test1 = false;
+                    //on vide le buffer
+                    scan.nextLine();
+
+                    do{
+
+                        //on demande le fond que l'utilisateur veut afficher pour avoir ses stats
+                        System.out.println("Pour quel fond voulez-vous savoir sa proportion pour les différents Instruments ?\n");
+                        System.out.println("Entrez son nom :\n");
+
+
+
+                        try{
+                            nom1 = scan.nextLine();
+
+                            console.afficherPourcentagFonds(nom1,portefeuille);
+                            test1 = true;
+
+                        }catch(Exception e)
+                        {
+                            System.out.println("Ce fond n'existe pas\n");
+                        }
+
+                    }while(test1 == false);
+
+                break;
             }
 
-            //on ré-initialise choix
+
+            //on ré-initialise la valeur choix pour ne pas boucler à l'infini sur le meme case
             choix = 1000;
 
             //affichage
             console.afficherFonds(portefeuille);
             console.afficherInstruments(portefeuille);
-            console.afficherPourcentagFonds("A", portefeuille);
+            //console.afficherPourcentagFonds("A", portefeuille);
 
 
         }while(choix != 0);
 
-        console.afficherFonds(portefeuille);
-        console.afficherInstruments(portefeuille);
-        console.afficherPourcentagFonds("A", portefeuille);
+
     }
 
 
