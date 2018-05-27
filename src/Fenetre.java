@@ -1,6 +1,10 @@
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
@@ -17,7 +21,7 @@ import java.util.*;
 /**
  * Sources :
  *     JTable : https://baptiste-wicht.developpez.com/tutoriels/java/swing/jtable/
- *     JMenuBar + JPopupMenu : https://openclassrooms.com/courses/apprenez-a-programmer-en-java/les-menus-et-boites-de-dialogue
+ *     JMenuBar + JPopupMenu : https://openclassrooms.com/courses/apprenez-a-programmer-en-java
  */
 public class Fenetre extends JFrame {
     // Attributs
@@ -34,6 +38,11 @@ public class Fenetre extends JFrame {
     private JTable tableauFonds;
     private JTable tableauTauxFonds;
     private JTable tableauInstruments;
+    private JPanel pageInstruments;
+    private JPanel pageFonds;
+    private ChartPanel statsPanel;
+
+    private boolean tauxFonds = false;
 
     // Constructeur
     public Fenetre() {
@@ -113,6 +122,12 @@ public class Fenetre extends JFrame {
         tableauFonds.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
             if (!e.getValueIsAdjusting()) {
                 tauxFondsModel.setFond(fondsModel.getFond(tableauFonds.getSelectedRow()).getCle());
+                if (!tauxFonds) {
+                    pageFonds.add(new JScrollPane(tableauTauxFonds), BorderLayout.EAST);
+                    Fenetre.this.pack();
+
+                    tauxFonds = true;
+                }
             }
         });
 
@@ -122,15 +137,9 @@ public class Fenetre extends JFrame {
         new AjouterFondAction().ajouterPanel(btns);
 
         // Page Fonds
-        JPanel tableaux = new JPanel();
-        tableaux.setLayout(new FlowLayout());
-        tableaux.add(new JScrollPane(tableauFonds));
-        tableaux.add(new JScrollPane(tableauTauxFonds));
-
-        JPanel pageFonds = new JPanel();
+        pageFonds = new JPanel();
         pageFonds.setLayout(new BorderLayout());
-        pageFonds.add(tableaux, BorderLayout.CENTER);
-        //pageFonds.add(new JScrollPane(tableauFonds), BorderLayout.CENTER);
+        pageFonds.add(new JScrollPane(tableauFonds), BorderLayout.CENTER);
         pageFonds.add(btns, BorderLayout.SOUTH);
 
         tabs.add("Fonds", pageFonds);
@@ -155,18 +164,44 @@ public class Fenetre extends JFrame {
             }
         });
 
+        tableauInstruments.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+            if (!e.getValueIsAdjusting()) {
+                Instrument instr = instrumentsModel.getInstrument(tableauInstruments.getSelectedRow());
+
+                DefaultPieDataset dataset = new DefaultPieDataset();
+                for (Fonds f : instr.getFonds()) {
+                    dataset.setValue(f.getCle(), f.getAmount());
+                }
+
+                setGraphique(ChartFactory.createPieChart(
+                        "Fonds", dataset
+                ));
+            }
+        });
+
         // Boutons instruments
         JPanel btns = new JPanel();
         btns.setLayout(new FlowLayout());
         new AjouterInstrumentAction().ajouterPanel(btns);
 
         // Page Instruments
-        JPanel pageInstruments = new JPanel();
+        pageInstruments = new JPanel();
         pageInstruments.setLayout(new BorderLayout());
         pageInstruments.add(new JScrollPane(tableauInstruments), BorderLayout.CENTER);
         pageInstruments.add(btns, BorderLayout.SOUTH);
 
         tabs.add("Instruments", pageInstruments);
+    }
+
+    private void setGraphique(JFreeChart chart) {
+        if (statsPanel == null) {
+            statsPanel = new ChartPanel(chart, true);
+            pageInstruments.add(statsPanel, BorderLayout.EAST);
+
+            pack();
+        } else {
+            statsPanel.setChart(chart);
+        }
     }
 
     // Classes
@@ -178,9 +213,7 @@ public class Fenetre extends JFrame {
 
         // Constructeur
         public FondsModel(HashMap<String,Fonds> fonds) {
-            fonds.forEach((String c, Fonds f) -> {
-                this.fonds.add(f);
-            });
+            setFonds(fonds);
         }
 
         // Méthodes
@@ -212,6 +245,16 @@ public class Fenetre extends JFrame {
             }
 
             return null;
+        }
+
+        public void setFonds(HashMap<String,Fonds> fonds) {
+            while (this.fonds.size() > 0) {
+                supprimer(0);
+            }
+
+            fonds.forEach((String c, Fonds f) -> {
+                ajouter(f);
+            });
         }
 
         public void ajouter(Fonds f) {
@@ -249,100 +292,6 @@ public class Fenetre extends JFrame {
             }
 
             fondsCombobox.add(combobox);
-        }
-    }
-    private class InstrumentsModel extends AbstractTableModel {
-        // Attributs
-        private final Vector<Instrument> instruments = new Vector<>();
-        private final String[] entetes = {"Nom", "Nombre de fonds", "Somme"};
-        private LinkedList<JComboBox<String>> instrumentsCombobox = new LinkedList<>();
-
-        // Constructeur
-        public InstrumentsModel(HashMap<String,Instrument> instruments) {
-            instruments.forEach((String c, Instrument i) -> {
-                this.instruments.add(i);
-            });
-        }
-
-        // Méthodes
-        @Override
-        public int getRowCount() {
-            return instruments.size();
-        }
-
-        @Override
-        public int getColumnCount() {
-            return entetes.length;
-        }
-
-        @Override
-        public String getColumnName(int column) {
-            return entetes[column];
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            Instrument instrument = instruments.get(rowIndex);
-
-            switch (columnIndex) {
-                case 0:
-                    return instrument.getCle();
-
-                case 1:
-                    return instrument.getFonds().size();
-
-                case 2:
-                    double somme = 0;
-                    for (Fonds fonds : instrument.getFonds()) {
-                        somme += fonds.getAmount();
-                    }
-
-                    return NumberFormat.getCurrencyInstance().format(somme);
-            }
-
-            return null;
-        }
-
-        public void ajouter(Instrument instr) {
-            instruments.add(instr);
-            fireTableRowsInserted(instruments.size()-1, instruments.size()-1);
-
-            for (JComboBox<String> comboBox : instrumentsCombobox) {
-                comboBox.addItem(instr.getCle());
-            }
-        }
-
-        public void maj(String cle) {
-            for (int i = 0; i < instruments.size(); ++i) {
-                if (instruments.get(i).getCle().equals(cle)) {
-                    fireTableCellUpdated(i, 1);
-                    fireTableCellUpdated(i, 2);
-                }
-            }
-        }
-
-        public void supprimer(int i) {
-            try {
-                Instrument instr = instruments.get(i);
-                portefeuille.supprimerInstrument(instr.getCle());
-
-                instruments.remove(i);
-                fireTableRowsDeleted(i, i);
-
-                for (JComboBox<String> comboBox : instrumentsCombobox) {
-                    comboBox.removeItem(instr.getCle());
-                }
-            } catch (InstrumentInexistant err) {
-                err.printStackTrace();
-            }
-        }
-
-        public void ajouterCombobox(JComboBox<String> combobox) {
-            for (Instrument instr : instruments) {
-                combobox.addItem(instr.getCle());
-            }
-
-            instrumentsCombobox.add(combobox);
         }
     }
     private class TauxFondsModel extends AbstractTableModel {
@@ -412,6 +361,112 @@ public class Fenetre extends JFrame {
             });
         }
     }
+    private class InstrumentsModel extends AbstractTableModel {
+        // Attributs
+        private final Vector<Instrument> instruments = new Vector<>();
+        private final String[] entetes = {"Nom", "Nombre de fonds", "Somme"};
+        private LinkedList<JComboBox<String>> instrumentsCombobox = new LinkedList<>();
+
+        // Constructeur
+        public InstrumentsModel(HashMap<String,Instrument> instruments) {
+            setInstruments(instruments);
+        }
+
+        // Méthodes
+        @Override
+        public int getRowCount() {
+            return instruments.size();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return entetes.length;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return entetes[column];
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            Instrument instrument = instruments.get(rowIndex);
+
+            switch (columnIndex) {
+                case 0:
+                    return instrument.getCle();
+
+                case 1:
+                    return instrument.getFonds().size();
+
+                case 2:
+                    double somme = 0;
+                    for (Fonds fonds : instrument.getFonds()) {
+                        somme += fonds.getAmount();
+                    }
+
+                    return NumberFormat.getCurrencyInstance().format(somme);
+            }
+
+            return null;
+        }
+
+        public void setInstruments(HashMap<String,Instrument> instruments) {
+            while (this.instruments.size() > 0) {
+                supprimer(0);
+            }
+
+            instruments.forEach((String c, Instrument i) -> {
+                ajouter(i);
+            });
+        }
+
+        public void ajouter(Instrument instr) {
+            instruments.add(instr);
+            fireTableRowsInserted(instruments.size()-1, instruments.size()-1);
+
+            for (JComboBox<String> comboBox : instrumentsCombobox) {
+                comboBox.addItem(instr.getCle());
+            }
+        }
+
+        public Instrument getInstrument(int i) {
+            return instruments.get(i);
+        }
+
+        public void maj(String cle) {
+            for (int i = 0; i < instruments.size(); ++i) {
+                if (instruments.get(i).getCle().equals(cle)) {
+                    fireTableCellUpdated(i, 1);
+                    fireTableCellUpdated(i, 2);
+                }
+            }
+        }
+
+        public void supprimer(int i) {
+            try {
+                Instrument instr = instruments.get(i);
+                portefeuille.supprimerInstrument(instr.getCle());
+
+                instruments.remove(i);
+                fireTableRowsDeleted(i, i);
+
+                for (JComboBox<String> comboBox : instrumentsCombobox) {
+                    comboBox.removeItem(instr.getCle());
+                }
+            } catch (InstrumentInexistant err) {
+                err.printStackTrace();
+            }
+        }
+
+        public void ajouterCombobox(JComboBox<String> combobox) {
+            for (Instrument instr : instruments) {
+                combobox.addItem(instr.getCle());
+            }
+
+            instrumentsCombobox.add(combobox);
+        }
+    }
 
     private class ChargerAction extends AbstractAction {
         // Constructeur
@@ -424,13 +479,12 @@ public class Fenetre extends JFrame {
         public void actionPerformed(ActionEvent e) {
             if (fileChooser.showOpenDialog(Fenetre.this) == JFileChooser.APPROVE_OPTION) {
                 try {
-                    portefeuille = Portefeuille.charger(fileChooser.getSelectedFile());
+                    Portefeuille tmp = Portefeuille.charger(fileChooser.getSelectedFile());
 
-                    fondsModel = new FondsModel(portefeuille.getFonds());
-                    tableauFonds.setModel(fondsModel);
+                    fondsModel.setFonds(tmp.getFonds());
+                    instrumentsModel.setInstruments(tmp.getInstruments());
 
-                    instrumentsModel = new InstrumentsModel(portefeuille.getInstruments());
-                    tableauInstruments.setModel(instrumentsModel);
+                    portefeuille = tmp;
 
                 } catch (IOException | ClassNotFoundException e1) {
                     JOptionPane.showMessageDialog(Fenetre.this,
@@ -507,8 +561,6 @@ public class Fenetre extends JFrame {
                         champNom.getText(),
                         ((Number) champSomme.getValue()).doubleValue()
                 );
-
-                fondsModel.ajouter(f);
             } catch (FondsExistant fondsExistant) {
                 JOptionPane.showMessageDialog(
                         Fenetre.this,
