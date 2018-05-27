@@ -1,4 +1,6 @@
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
@@ -8,9 +10,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.HashMap;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * Sources :
@@ -20,11 +22,17 @@ import java.util.Vector;
 public class Fenetre extends JFrame {
     // Attributs
     private Portefeuille portefeuille = new Portefeuille();
+
     private FondsModel fondsModel;
+    private TauxFondsModel tauxFondsModel;
+    private InstrumentsModel instrumentsModel;
+
     private JPopupMenu popupFondsMenu;
+    private JPopupMenu popupInstrumentsMenu;
 
     private JFileChooser fileChooser;
     private JTable tableauFonds;
+    private JTable tableauTauxFonds;
     private JTable tableauInstruments;
 
     // Constructeur
@@ -59,6 +67,7 @@ public class Fenetre extends JFrame {
         containter.add(tabs, BorderLayout.CENTER);
 
         pack();
+        setMinimumSize(getSize());
     }
 
     // Méthodes
@@ -87,37 +96,75 @@ public class Fenetre extends JFrame {
         tableauFonds = new JTable(fondsModel);
         tableauFonds.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Boutons fond
-        JPanel boutonsFonds = new JPanel();
-        boutonsFonds.setLayout(new FlowLayout());
-        new AjouterFondAction().addCard(boutonsFonds);
-
-        // Page Fonds
-        JPanel pageFonds = new JPanel();
-        pageFonds.setLayout(new BorderLayout());
-        pageFonds.add(new JScrollPane(tableauFonds), BorderLayout.CENTER);
-        pageFonds.add(boutonsFonds, BorderLayout.SOUTH);
-
         tableauFonds.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (popupFondsMenu.isPopupTrigger(e)) {
-                    popupFondsMenu.show(e.getComponent(), e.getX(), e.getY() + tableauFonds.getY());
+                    popupFondsMenu.show(tableauFonds, e.getX(), e.getY());
                 }
             }
         });
 
+        tauxFondsModel = new TauxFondsModel();
+
+        tableauTauxFonds = new JTable(tauxFondsModel);
+        tableauTauxFonds.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        tableauFonds.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+            if (!e.getValueIsAdjusting()) {
+                tauxFondsModel.setFond(fondsModel.getFond(tableauFonds.getSelectedRow()).getCle());
+            }
+        });
+
+        // Boutons fond
+        JPanel btns = new JPanel();
+        btns.setLayout(new FlowLayout());
+        new AjouterFondAction().ajouterPanel(btns);
+
+        // Page Fonds
+        JPanel tableaux = new JPanel();
+        tableaux.setLayout(new FlowLayout());
+        tableaux.add(new JScrollPane(tableauFonds));
+        tableaux.add(new JScrollPane(tableauTauxFonds));
+
+        JPanel pageFonds = new JPanel();
+        pageFonds.setLayout(new BorderLayout());
+        pageFonds.add(tableaux, BorderLayout.CENTER);
+        //pageFonds.add(new JScrollPane(tableauFonds), BorderLayout.CENTER);
+        pageFonds.add(btns, BorderLayout.SOUTH);
+
         tabs.add("Fonds", pageFonds);
     }
     private void initInstruments(JTabbedPane tabs) {
+        // Préparation menu contextuel
+        popupInstrumentsMenu = new JPopupMenu("");
+        popupInstrumentsMenu.add(new SupprimerInstrumentAction());
+
         // Instruments
-        tableauInstruments = new JTable(new InstrumentsModel(portefeuille.getInstruments()));
+        instrumentsModel = new InstrumentsModel(portefeuille.getInstruments());
+
+        tableauInstruments = new JTable(instrumentsModel);
         tableauInstruments.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        tableauInstruments.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (popupInstrumentsMenu.isPopupTrigger(e)) {
+                    popupInstrumentsMenu.show(tableauInstruments, e.getX(), e.getY());
+                }
+            }
+        });
+
+        // Boutons instruments
+        JPanel btns = new JPanel();
+        btns.setLayout(new FlowLayout());
+        new AjouterInstrumentAction().ajouterPanel(btns);
 
         // Page Instruments
         JPanel pageInstruments = new JPanel();
         pageInstruments.setLayout(new BorderLayout());
         pageInstruments.add(new JScrollPane(tableauInstruments), BorderLayout.CENTER);
+        pageInstruments.add(btns, BorderLayout.SOUTH);
 
         tabs.add("Instruments", pageInstruments);
     }
@@ -127,6 +174,7 @@ public class Fenetre extends JFrame {
         // Attributs
         private final Vector<Fonds> fonds = new Vector<>();
         private final String[] entetes = {"Nom", "Somme"};
+        private LinkedList<JComboBox<String>> fondsCombobox = new LinkedList<>();
 
         // Constructeur
         public FondsModel(HashMap<String,Fonds> fonds) {
@@ -160,7 +208,7 @@ public class Fenetre extends JFrame {
                     return fond.getCle();
 
                 case 1:
-                    return String.format("%.2f €", fond.getAmount());
+                    return NumberFormat.getCurrencyInstance().format(fond.getAmount());
             }
 
             return null;
@@ -169,23 +217,45 @@ public class Fenetre extends JFrame {
         public void ajouter(Fonds f) {
             fonds.add(f);
             fireTableRowsInserted(fonds.size()-1, fonds.size()-1);
+
+            for (JComboBox<String> comboBox : fondsCombobox) {
+                comboBox.addItem(f.getCle());
+            }
+        }
+
+        public Fonds getFond(int i) {
+            return fonds.get(i);
         }
 
         public void supprimer(int i) {
             try {
-                Fonds f = fonds.remove(i);
+                Fonds f = fonds.get(i);
+                portefeuille.supprimerFonds(f.getCle());
+
+                fonds.remove(i);
                 fireTableRowsDeleted(i, i);
 
-                portefeuille.supprimerFonds(f.getCle());
-            } catch (FondsInexistant fondsInexistant) {
-                fondsInexistant.printStackTrace();
+                for (JComboBox<String> comboBox : fondsCombobox) {
+                    comboBox.removeItem(f.getCle());
+                }
+            } catch (FondsInexistant err) {
+                err.printStackTrace();
             }
+        }
+
+        public void ajouterCombobox(JComboBox<String> combobox) {
+            for (Fonds f : fonds) {
+                combobox.addItem(f.getCle());
+            }
+
+            fondsCombobox.add(combobox);
         }
     }
     private class InstrumentsModel extends AbstractTableModel {
         // Attributs
         private final Vector<Instrument> instruments = new Vector<>();
         private final String[] entetes = {"Nom", "Nombre de fonds", "Somme"};
+        private LinkedList<JComboBox<String>> instrumentsCombobox = new LinkedList<>();
 
         // Constructeur
         public InstrumentsModel(HashMap<String,Instrument> instruments) {
@@ -227,10 +297,119 @@ public class Fenetre extends JFrame {
                         somme += fonds.getAmount();
                     }
 
-                    return String.format("%.2f €", somme);
+                    return NumberFormat.getCurrencyInstance().format(somme);
             }
 
             return null;
+        }
+
+        public void ajouter(Instrument instr) {
+            instruments.add(instr);
+            fireTableRowsInserted(instruments.size()-1, instruments.size()-1);
+
+            for (JComboBox<String> comboBox : instrumentsCombobox) {
+                comboBox.addItem(instr.getCle());
+            }
+        }
+
+        public void maj(String cle) {
+            for (int i = 0; i < instruments.size(); ++i) {
+                if (instruments.get(i).getCle().equals(cle)) {
+                    fireTableCellUpdated(i, 1);
+                    fireTableCellUpdated(i, 2);
+                }
+            }
+        }
+
+        public void supprimer(int i) {
+            try {
+                Instrument instr = instruments.get(i);
+                portefeuille.supprimerInstrument(instr.getCle());
+
+                instruments.remove(i);
+                fireTableRowsDeleted(i, i);
+
+                for (JComboBox<String> comboBox : instrumentsCombobox) {
+                    comboBox.removeItem(instr.getCle());
+                }
+            } catch (InstrumentInexistant err) {
+                err.printStackTrace();
+            }
+        }
+
+        public void ajouterCombobox(JComboBox<String> combobox) {
+            for (Instrument instr : instruments) {
+                combobox.addItem(instr.getCle());
+            }
+
+            instrumentsCombobox.add(combobox);
+        }
+    }
+    private class TauxFondsModel extends AbstractTableModel {
+        // Attributs
+        private String fond = null;
+        private Vector<String> instruments = new Vector<>();
+        private Vector<Double> taux = new Vector<>();
+        private final String[] entetes = {"Instrument", "Taux"};
+
+        // Méthodes
+        @Override
+        public int getRowCount() {
+            return instruments.size();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 2;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return entetes[column];
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            switch (columnIndex) {
+                case 0:
+                    return instruments.get(rowIndex);
+
+                case 1:
+                    return String.format("%.2f %%", taux.get(rowIndex));
+            }
+
+            return null;
+        }
+
+        public void setFond(final String cleFonds) {
+            this.fond = cleFonds;
+
+            portefeuille.getInstruments().forEach((String cle, Instrument instr) -> {
+                double tx = instr.pourcentageFonds(cleFonds);
+
+                if (tx != 0) {
+                    int i = instruments.indexOf(cle);
+
+                    if (i == -1) {
+                        instruments.add(cle);
+                        taux.add(tx);
+
+                        fireTableRowsInserted(instruments.size()-1, instruments.size()-1);
+                    } else {
+                        taux.set(i, tx);
+                        fireTableCellUpdated(i, 1);
+                    }
+                } else {
+                    int i = instruments.indexOf(cle);
+
+                    if (i != -1) {
+                        instruments.remove(i);
+                        taux.remove(i);
+
+                        fireTableRowsDeleted(i, i);
+                    }
+                }
+            });
         }
     }
 
@@ -247,8 +426,11 @@ public class Fenetre extends JFrame {
                 try {
                     portefeuille = Portefeuille.charger(fileChooser.getSelectedFile());
 
-                    tableauFonds.setModel(new FondsModel(portefeuille.getFonds()));
-                    tableauInstruments.setModel(new InstrumentsModel(portefeuille.getInstruments()));
+                    fondsModel = new FondsModel(portefeuille.getFonds());
+                    tableauFonds.setModel(fondsModel);
+
+                    instrumentsModel = new InstrumentsModel(portefeuille.getInstruments());
+                    tableauInstruments.setModel(instrumentsModel);
 
                 } catch (IOException | ClassNotFoundException e1) {
                     JOptionPane.showMessageDialog(Fenetre.this,
@@ -271,6 +453,11 @@ public class Fenetre extends JFrame {
         public void actionPerformed(ActionEvent e) {
             if (fileChooser.showSaveDialog(Fenetre.this) == JFileChooser.APPROVE_OPTION) {
                 try {
+                    File fichier = fileChooser.getSelectedFile();
+                    if (!fichier.getPath().endsWith(".obj")) {
+                        fichier.renameTo(new File(fichier.getPath() + ".obj"));
+                    }
+
                     portefeuille.sauvegarder(fileChooser.getSelectedFile());
 
                 } catch (IOException e1) {
@@ -288,7 +475,7 @@ public class Fenetre extends JFrame {
         // Attributs
         private JPanel card = new JPanel();
         private JTextField champNom = new JTextField(15);
-        private JFormattedTextField champSomme = new JFormattedTextField(NumberFormat.getNumberInstance());
+        private JFormattedTextField champSomme = new JFormattedTextField(DecimalFormat.getNumberInstance());
         private JButton btn;
 
         // Constructeur
@@ -302,6 +489,7 @@ public class Fenetre extends JFrame {
             panel.add(champNom);
             card.add(panel);
 
+            panel = new JPanel();
             panel.add(new JLabel("Somme :"));
             panel.add(champSomme);
             champSomme.setColumns(10);
@@ -317,7 +505,7 @@ public class Fenetre extends JFrame {
             try {
                 Fonds f = portefeuille.ajouterFonds(
                         champNom.getText(),
-                        Double.parseDouble(champSomme.getText())
+                        ((Number) champSomme.getValue()).doubleValue()
                 );
 
                 fondsModel.ajouter(f);
@@ -331,7 +519,7 @@ public class Fenetre extends JFrame {
             }
         }
 
-        public void addCard(JPanel panel) {
+        public void ajouterPanel(JPanel panel) {
             panel.add(card);
         }
     }
@@ -348,6 +536,77 @@ public class Fenetre extends JFrame {
 
             if (i != -1) {
                 fondsModel.supprimer(i);
+            }
+        }
+    }
+
+    private class AjouterInstrumentAction extends AbstractAction {
+        // Attributs
+        private JPanel card = new JPanel();
+        private JComboBox<String> champNom = new JComboBox<>();
+        private JComboBox<String> champFonds = new JComboBox<>();
+        private JButton btn;
+
+        // Constructeur
+        public AjouterInstrumentAction() {
+            super("Ajouter");
+
+            // Init panel
+            card.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+            JPanel panel = new JPanel();
+            panel.add(new JLabel("Nom :"));
+            instrumentsModel.ajouterCombobox(champNom);
+            champNom.setEditable(true);
+            panel.add(champNom);
+            card.add(panel);
+
+            panel = new JPanel();
+            panel.add(new JLabel("Fond :"));
+            fondsModel.ajouterCombobox(champFonds);
+            panel.add(champFonds);
+            card.add(panel);
+
+            btn = new JButton(this);
+            card.add(btn);
+        }
+
+        // Méthodes
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+                Instrument instr = portefeuille.ajouterFondInstrument(
+                        (String) champNom.getSelectedItem(),
+                        portefeuille.rechercheFonds((String) champFonds.getSelectedItem())
+                );
+
+                if (instr != null) {
+                    instrumentsModel.ajouter(instr);
+                } else {
+                    instrumentsModel.maj((String) champNom.getSelectedItem());
+                }
+            } catch (FondsInexistant err) {
+                err.printStackTrace();
+            }
+        }
+
+        public void ajouterPanel(JPanel panel) {
+            panel.add(card);
+        }
+    }
+    private class SupprimerInstrumentAction extends AbstractAction {
+        // Constructeur
+        public SupprimerInstrumentAction() {
+            super("Supprimer");
+        }
+
+        // Méthodes
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int i = tableauInstruments.getSelectedRow();
+
+            if (i != -1) {
+                instrumentsModel.supprimer(i);
             }
         }
     }

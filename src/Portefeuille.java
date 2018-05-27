@@ -62,15 +62,17 @@ public class Portefeuille implements Serializable {
         return i.getFonds();
     }
 
-    public void ajouterFondInstrument(String nom, Fonds fonds) {
+    public Instrument ajouterFondInstrument(String nom, Fonds fonds) {
         Instrument i = instruments.get(nom);
+        Instrument r = null;
 
         if (i == null) {
-            i = new Instrument(nom);
+            r = i = new Instrument(nom);
             instruments.put(nom, i);
         }
 
         i.ajouterFonds(fonds);
+        return r;
     }
 
     public void supprimerInstrument(String nom) throws InstrumentInexistant {
