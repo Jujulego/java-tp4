@@ -439,6 +439,17 @@ public class Fenetre extends JFrame {
                 if (instruments.get(i).getCle().equals(cle)) {
                     fireTableCellUpdated(i, 1);
                     fireTableCellUpdated(i, 2);
+
+                    if (tableauInstruments.getSelectedRow() == i) {
+                        DefaultPieDataset dataset = new DefaultPieDataset();
+                        for (Fonds f : instruments.get(i).getFonds()) {
+                            dataset.setValue(f.getCle(), f.getAmount());
+                        }
+
+                        setGraphique(ChartFactory.createPieChart(
+                                "Fonds", dataset
+                        ));
+                    }
                 }
             }
         }
@@ -561,6 +572,8 @@ public class Fenetre extends JFrame {
                         champNom.getText(),
                         ((Number) champSomme.getValue()).doubleValue()
                 );
+
+                fondsModel.ajouter(f);
             } catch (FondsExistant fondsExistant) {
                 JOptionPane.showMessageDialog(
                         Fenetre.this,

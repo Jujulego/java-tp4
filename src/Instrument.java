@@ -14,7 +14,9 @@ public class Instrument implements Serializable {
 
     // Méthodes
     public void ajouterFonds(Fonds fonds) {
-        this.fonds.add(fonds);
+        if (!this.fonds.contains(fonds)) {
+            this.fonds.add(fonds);
+        }
     }
 
     public double pourcentageFonds(String cle) {
