@@ -5,13 +5,13 @@ import java.util.Iterator;
 
 public class Main {
     public static void main(String[] args) {
-        /*Portefeuille portefeuille;
+        Portefeuille portefeuille = new Portefeuille();
 
-        File fichier = new File("portefeuille.obj");
+        //File fichier = new File("portefeuille.obj");
         Console console = new Console();
 
         // Ouverture !
-        if (fichier.exists()) {
+        /*if (fichier.exists()) {
             try {
                 portefeuille = Portefeuille.charger(fichier);
 
@@ -42,7 +42,7 @@ public class Main {
 
         } catch (FondsExistant | FondsInexistant err) {
             System.out.println("Existe déjà !");
-        }
+        }*/
 
         //Scanner pour récupérer les entrées clavie
         Scanner scan = new Scanner(System.in);
@@ -70,6 +70,7 @@ public class Main {
             System.out.println("entrez 7 pour afficher tous les Instruments"); // à faire
             System.out.println("entrez 8 pour afficher tous les Fonds"); // à faire
             System.out.println("entrez 9 pour afficher pourcentage que représente un fond dans chaque Instrument");
+            System.out.println("entrez 10 pour le mode graphique !");
             System.out.println("entrez 0 pour quitter le programme");
 
             try{
@@ -89,14 +90,15 @@ public class Main {
 
             }while(test1 == false);
 
-
-
-
-
             //switch pour le choix
             switch (choix) {
                 case 0:
                     System.out.println("Vous quittez le programme");
+                    return;
+
+                case 10:
+                    Fenetre fenetre = new Fenetre();
+                    fenetre.setVisible(true);
                     return;
 
                 case 1: //afficher fond
