@@ -4,6 +4,8 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
@@ -120,7 +122,7 @@ public class Fenetre extends JFrame {
         tableauTauxFonds.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         tableauFonds.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
-            if (!e.getValueIsAdjusting()) {
+            if (!e.getValueIsAdjusting() && (tableauFonds.getSelectedRow() != -1)) {
                 tauxFondsModel.setFond(fondsModel.getFond(tableauFonds.getSelectedRow()).getCle());
                 if (!tauxFonds) {
                     pageFonds.add(new JScrollPane(tableauTauxFonds), BorderLayout.EAST);
@@ -141,6 +143,7 @@ public class Fenetre extends JFrame {
         pageFonds.setLayout(new BorderLayout());
         pageFonds.add(new JScrollPane(tableauFonds), BorderLayout.CENTER);
         pageFonds.add(btns, BorderLayout.SOUTH);
+        fondsModel.ajouterRecherche(pageFonds, BorderLayout.NORTH);
 
         tabs.add("Fonds", pageFonds);
     }
@@ -165,7 +168,7 @@ public class Fenetre extends JFrame {
         });
 
         tableauInstruments.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
-            if (!e.getValueIsAdjusting()) {
+            if (!e.getValueIsAdjusting() && (tableauInstruments.getSelectedRow() != -1)) {
                 Instrument instr = instrumentsModel.getInstrument(tableauInstruments.getSelectedRow());
 
                 DefaultPieDataset dataset = new DefaultPieDataset();
@@ -189,6 +192,7 @@ public class Fenetre extends JFrame {
         pageInstruments.setLayout(new BorderLayout());
         pageInstruments.add(new JScrollPane(tableauInstruments), BorderLayout.CENTER);
         pageInstruments.add(btns, BorderLayout.SOUTH);
+        instrumentsModel.ajouterRecherche(pageInstruments, BorderLayout.NORTH);
 
         tabs.add("Instruments", pageInstruments);
     }
@@ -210,6 +214,9 @@ public class Fenetre extends JFrame {
         private final Vector<Fonds> fonds = new Vector<>();
         private final String[] entetes = {"Nom", "Somme"};
         private LinkedList<JComboBox<String>> fondsCombobox = new LinkedList<>();
+        private JTextField champRecherche = new JTextField(15);
+        private JButton btntrier = new JButton("Trier");
+        private String filtre = "";
 
         // Constructeur
         public FondsModel(HashMap<String,Fonds> fonds) {
@@ -219,7 +226,8 @@ public class Fenetre extends JFrame {
         // Méthodes
         @Override
         public int getRowCount() {
-            return fonds.size();
+            return filtrer(filtre).size();
+            //return fonds.size();
         }
 
         @Override
@@ -234,7 +242,8 @@ public class Fenetre extends JFrame {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            Fonds fond = fonds.get(rowIndex);
+            Fonds fond = filtrer(filtre).get(rowIndex);
+            //Fonds fond = fonds.get(rowIndex);
 
             switch (columnIndex) {
                 case 0:
@@ -245,6 +254,22 @@ public class Fenetre extends JFrame {
             }
 
             return null;
+        }
+
+        public Vector<Fonds> filtrer(String str) {
+            if (str.equals("")) {
+                return fonds;
+            }
+
+            Vector<Fonds> filtres = new Vector<>();
+
+            for (Fonds f : fonds) {
+                if (f.getCle().startsWith(str)) {
+                    filtres.add(f);
+                }
+            }
+
+            return filtres;
         }
 
         public void setFonds(HashMap<String,Fonds> fonds) {
@@ -267,7 +292,7 @@ public class Fenetre extends JFrame {
         }
 
         public Fonds getFond(int i) {
-            return fonds.get(i);
+            return filtrer(filtre).get(i);
         }
 
         public void supprimer(int i) {
@@ -275,6 +300,7 @@ public class Fenetre extends JFrame {
                 Fonds f = fonds.get(i);
                 portefeuille.supprimerFonds(f.getCle());
 
+                System.out.println(i);
                 fonds.remove(i);
                 fireTableRowsDeleted(i, i);
 
@@ -293,10 +319,59 @@ public class Fenetre extends JFrame {
 
             fondsCombobox.add(combobox);
         }
+
+        private void majFiltre() {
+            int onb = filtrer(filtre).size();
+            int nnb = filtrer(champRecherche.getText()).size();
+
+            filtre = champRecherche.getText();
+
+            if (onb < nnb) {
+                fireTableRowsUpdated(0, onb-1);
+                fireTableRowsInserted(onb, nnb-1);
+            } else if (onb == nnb) {
+                fireTableRowsUpdated(0, onb-1);
+            } else {
+                fireTableRowsUpdated(0, nnb-1);
+                fireTableRowsDeleted(nnb, onb-1);
+            }
+        }
+
+        public void ajouterRecherche(JPanel panel, Object contrainte) {
+            JPanel p = new JPanel();
+            p.setLayout(new FlowLayout(FlowLayout.LEFT));
+            p.add(new JLabel("Rechercher :"));
+            p.add(champRecherche);
+            p.add(btntrier);
+
+            panel.add(p, contrainte);
+
+            btntrier.addActionListener(this::trier);
+            champRecherche.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+            });
+        }
+
+        public void trier(ActionEvent e) {
+            Collections.sort(fonds);
+            fireTableRowsUpdated(0, fonds.size());
+        }
     }
     private class TauxFondsModel extends AbstractTableModel {
         // Attributs
-        private String fond = null;
         private Vector<String> instruments = new Vector<>();
         private Vector<Double> taux = new Vector<>();
         private final String[] entetes = {"Instrument", "Taux"};
@@ -331,8 +406,6 @@ public class Fenetre extends JFrame {
         }
 
         public void setFond(final String cleFonds) {
-            this.fond = cleFonds;
-
             portefeuille.getInstruments().forEach((String cle, Instrument instr) -> {
                 double tx = instr.pourcentageFonds(cleFonds);
 
@@ -366,6 +439,8 @@ public class Fenetre extends JFrame {
         private final Vector<Instrument> instruments = new Vector<>();
         private final String[] entetes = {"Nom", "Nombre de fonds", "Somme"};
         private LinkedList<JComboBox<String>> instrumentsCombobox = new LinkedList<>();
+        private JTextField champRecherche = new JTextField(15);
+        private String filtre = "";
 
         // Constructeur
         public InstrumentsModel(HashMap<String,Instrument> instruments) {
@@ -375,7 +450,7 @@ public class Fenetre extends JFrame {
         // Méthodes
         @Override
         public int getRowCount() {
-            return instruments.size();
+            return filtrer(filtre).size();
         }
 
         @Override
@@ -390,7 +465,7 @@ public class Fenetre extends JFrame {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            Instrument instrument = instruments.get(rowIndex);
+            Instrument instrument = filtrer(filtre).get(rowIndex);
 
             switch (columnIndex) {
                 case 0:
@@ -409,6 +484,22 @@ public class Fenetre extends JFrame {
             }
 
             return null;
+        }
+
+        public Vector<Instrument> filtrer(String str) {
+            if (str.equals("")) {
+                return instruments;
+            }
+
+            Vector<Instrument> filtres = new Vector<>();
+
+            for (Instrument instr : instruments) {
+                if (instr.getCle().startsWith(str)) {
+                    filtres.add(instr);
+                }
+            }
+
+            return filtres;
         }
 
         public void setInstruments(HashMap<String,Instrument> instruments) {
@@ -431,7 +522,7 @@ public class Fenetre extends JFrame {
         }
 
         public Instrument getInstrument(int i) {
-            return instruments.get(i);
+            return filtrer(filtre).get(i);
         }
 
         public void maj(String cle) {
@@ -476,6 +567,49 @@ public class Fenetre extends JFrame {
             }
 
             instrumentsCombobox.add(combobox);
+        }
+
+        private void majFiltre() {
+            int onb = filtrer(filtre).size();
+            int nnb = filtrer(champRecherche.getText()).size();
+
+            filtre = champRecherche.getText();
+
+            if (onb < nnb) {
+                fireTableRowsUpdated(0, onb-1);
+                fireTableRowsInserted(onb, nnb-1);
+            } else if (onb == nnb) {
+                fireTableRowsUpdated(0, onb-1);
+            } else {
+                fireTableRowsUpdated(0, nnb-1);
+                fireTableRowsDeleted(nnb, onb-1);
+            }
+        }
+
+        public void ajouterRecherche(JPanel panel, Object contrainte) {
+            JPanel p = new JPanel();
+            p.setLayout(new FlowLayout(FlowLayout.LEFT));
+            p.add(new JLabel("Rechercher :"));
+            p.add(champRecherche);
+
+            panel.add(p, contrainte);
+
+            champRecherche.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    majFiltre();
+                }
+            });
         }
     }
 
@@ -599,7 +733,7 @@ public class Fenetre extends JFrame {
         public void actionPerformed(ActionEvent e) {
             int i = tableauFonds.getSelectedRow();
 
-            if (i != -1) {
+            if (i >= 0) {
                 fondsModel.supprimer(i);
             }
         }
