@@ -47,8 +47,12 @@ public class Portefeuille implements Serializable {
     }
 
     public void supprimerFonds(String nom) throws FondsInexistant {
-        if (fonds.remove(nom) == null) {
+        Fonds fond = fonds.remove(nom);
+
+        if (fond == null) {
             throw new FondsInexistant();
+        } else {
+            instruments.forEach((String cle, Instrument instr) -> instr.supprimerFonds(fond));
         }
     }
 
@@ -76,8 +80,12 @@ public class Portefeuille implements Serializable {
     }
 
     public void supprimerInstrument(String nom) throws InstrumentInexistant {
-        if (instruments.remove(nom) == null) {
+        Instrument instr = instruments.remove(nom);
+
+        if (instr == null) {
             throw new InstrumentInexistant();
+        } else {
+            instr.viderFonds();
         }
     }
 

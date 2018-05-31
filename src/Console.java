@@ -37,7 +37,7 @@ public class Console {
         System.out.println("+---------------------------+-------+-------------+");
     }
 
-    public void afficherPourcentagFonds(String fonds, Portefeuille portefeuille) {
+    public void afficherPourcentageFonds(String fonds, Portefeuille portefeuille) {
         System.out.println("Pourcentage pour le fond " + fonds + " :");
         System.out.println("+---------------------------+-------------+");
         System.out.println("|            Nom            | Pourcentage |");

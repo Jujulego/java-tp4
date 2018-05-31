@@ -15,7 +15,7 @@ public class Fonds implements Comparable<Fonds>, Serializable {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Fonds) {
-            return amount == ((Fonds) obj).amount;
+            return cle.equals(((Fonds) obj).cle);
         }
 
         return super.equals(obj);
