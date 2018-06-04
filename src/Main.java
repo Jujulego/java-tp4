@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
@@ -24,17 +26,19 @@ public class Main {
             // menu interaction  avec utilisateur
             do {
                 System.out.println("Choisissez l'action voulue :");
-                System.out.println("entrez 1 pour chercher un fond et connaitre son montant");
-                System.out.println("entrez 2 pour chercher un instrument et connaitre ses fonds associés");
-                System.out.println("entrez 3 pour ajouter un nouvel Instrument et son fond associé");
-                System.out.println("entrez 4 pour ajouter un Fond à un Instrument");
-                System.out.println("entrez 5 pour supprimer un Fond"); //ne fonctionne pas
-                System.out.println("entrez 6 pour supprimer un Instrument");
-                System.out.println("entrez 7 pour afficher tous les Instruments"); // à faire
-                System.out.println("entrez 8 pour afficher tous les Fonds"); // à faire
-                System.out.println("entrez 9 pour afficher pourcentage que représente un fond dans chaque Instrument");
-                System.out.println("entrez 10 pour le mode graphique !");
-                System.out.println("entrez 0 pour quitter le programme");
+                System.out.println("    1 : chercher un fond et connaitre son montant");
+                System.out.println("    2 : chercher un instrument et connaitre ses fonds associés");
+                System.out.println("    3 : ajouter un nouvel Instrument et son fond associé");
+                System.out.println("    4 : ajouter un Fond à un Instrument");
+                System.out.println("    5 : supprimer un Fond"); //ne fonctionne pas
+                System.out.println("    6 : supprimer un Instrument");
+                System.out.println("    7 : afficher tous les Instruments"); // à faire
+                System.out.println("    8 : afficher tous les Fonds"); // à faire
+                System.out.println("    9 : afficher pourcentage que représente un fond dans chaque Instrument");
+                System.out.println("   10 : charger un fichier");
+                System.out.println("   11 : sauvegarder dans un fichier");
+                System.out.println("   12 : le mode graphique !");
+                System.out.println("    0 : quitter le programme");
 
                 try {
                      choix = scan.nextInt();
@@ -42,7 +46,7 @@ public class Main {
                     choix=-1;
                 }
 
-                if((choix >= 0) && (choix <= 10)) {
+                if((choix >= 0) && (choix <= 12)) {
                     test1 = true;
                 } else {
                     System.out.println("Erreur choix \n\n");
@@ -55,10 +59,91 @@ public class Main {
                     System.out.println("Vous quittez le programme");
                     return;
 
-                case 10:
-                    Fenetre fenetre = new Fenetre();
+                case 12:
+                    Fenetre fenetre = new Fenetre(portefeuille);
                     fenetre.setVisible(true);
                     return;
+
+                case 10:
+                    //on vide le buffer
+                    scan.nextLine();
+
+                    while (true) {
+                        File f = null;
+
+                        do {
+                            if (f != null) {
+                                System.out.println("Ce fichier n'existe pas ou n'est pas un fichier !!!");
+                            }
+
+                            System.out.print("Entrez le nom du fichier (extension .obj) : ");
+                            f = new File(scan.nextLine());
+                            if (!f.getPath().endsWith(".obj")) {
+                                f = new File(f.getPath() + ".obj");
+                            }
+                        } while (!f.exists() || !f.isFile());
+
+                        // Chargement
+                        try {
+                            portefeuille = Portefeuille.charger(f);
+                            break;
+                        } catch (IOException | ClassNotFoundException e) {
+                            System.out.println("Erreur lors du chargement du fichier : " + e.getMessage());
+                        }
+                    }
+
+                    break;
+
+                case 11:
+                    //on vide le buffer
+                    scan.nextLine();
+
+                    while (true) {
+                        File f;
+
+                        do {
+                            System.out.print("Entrez le nom du fichier (extension .obj) : ");
+                            f = new File(scan.nextLine());
+                            if (!f.getPath().endsWith(".obj")) {
+                                f = new File(f.getPath() + ".obj");
+                            }
+
+                            if (f.exists()) {
+                                if (f.isFile()) {
+                                    System.out.print("Le fichier existe déjà. ");
+                                    String rep = "";
+
+                                    // Confirmation
+                                    do {
+                                        System.out.println("Ecraser ? [O|N] ");
+                                        rep = scan.nextLine();
+                                    } while(!rep.equalsIgnoreCase("O") && !rep.equalsIgnoreCase("N"));
+
+                                    if (rep.equalsIgnoreCase("O")) {
+                                        f.delete();
+                                    } else {
+                                        f = null;
+                                    }
+
+                                } else {
+                                    System.out.println("Ce n'est pas un fichier !");
+                                    f = null;
+                                }
+                            }
+                        } while (f == null);
+
+                        // Sauvegarde
+                        try {
+                            f.createNewFile();
+                            portefeuille.sauvegarder(f);
+                            break;
+
+                        } catch (IOException e) {
+                            System.out.println("Erreur lors du chargement du fichier : " + e.getMessage());
+                        }
+                    }
+
+                    break;
 
                 case 1: //afficher fond
                     //on vide le buffer
@@ -289,6 +374,6 @@ public class Main {
             //console.afficherPourcentageFonds("A", portefeuille);
 
 
-        } while(choix != 0);
+        } while(true);
     }
 }

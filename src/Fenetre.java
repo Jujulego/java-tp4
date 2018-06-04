@@ -81,6 +81,11 @@ public class Fenetre extends JFrame {
         setMinimumSize(getSize());
     }
 
+    public Fenetre(Portefeuille portefeuille) {
+        this();
+        setPortefeuille(portefeuille);
+    }
+
     // Méthodes
     private void initMenu() {
         // Actions de chargement / sauvegarde
@@ -207,6 +212,12 @@ public class Fenetre extends JFrame {
             statsPanel.setChart(chart);
         }
     }
+    private void setPortefeuille(Portefeuille tmp) {
+        fondsModel.setFonds(tmp.getFonds());
+        instrumentsModel.setInstruments(tmp.getInstruments());
+
+        portefeuille = tmp;
+    }
 
     // Classes
     private class FondsModel extends AbstractTableModel {
@@ -216,6 +227,7 @@ public class Fenetre extends JFrame {
         private LinkedList<JComboBox<String>> fondsCombobox = new LinkedList<>();
         private JTextField champRecherche = new JTextField(15);
         private JButton btntrier = new JButton("Trier");
+        private JButton btnsuppr = new JButton(new SupprimerFondAction());
         private String filtre = "";
 
         // Constructeur
@@ -343,6 +355,7 @@ public class Fenetre extends JFrame {
             p.add(new JLabel("Rechercher :"));
             p.add(champRecherche);
             p.add(btntrier);
+            p.add(btnsuppr);
 
             panel.add(p, contrainte);
 
@@ -440,6 +453,7 @@ public class Fenetre extends JFrame {
         private final String[] entetes = {"Nom", "Nombre de fonds", "Somme"};
         private LinkedList<JComboBox<String>> instrumentsCombobox = new LinkedList<>();
         private JTextField champRecherche = new JTextField(15);
+        private JButton btnsuppr = new JButton(new SupprimerInstrumentAction());
         private String filtre = "";
 
         // Constructeur
@@ -591,6 +605,7 @@ public class Fenetre extends JFrame {
             p.setLayout(new FlowLayout(FlowLayout.LEFT));
             p.add(new JLabel("Rechercher :"));
             p.add(champRecherche);
+            p.add(btnsuppr);
 
             panel.add(p, contrainte);
 
@@ -624,12 +639,7 @@ public class Fenetre extends JFrame {
         public void actionPerformed(ActionEvent e) {
             if (fileChooser.showOpenDialog(Fenetre.this) == JFileChooser.APPROVE_OPTION) {
                 try {
-                    Portefeuille tmp = Portefeuille.charger(fileChooser.getSelectedFile());
-
-                    fondsModel.setFonds(tmp.getFonds());
-                    instrumentsModel.setInstruments(tmp.getInstruments());
-
-                    portefeuille = tmp;
+                    setPortefeuille(Portefeuille.charger(fileChooser.getSelectedFile()));
 
                 } catch (IOException | ClassNotFoundException e1) {
                     JOptionPane.showMessageDialog(Fenetre.this,
